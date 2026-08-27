@@ -1,7 +1,7 @@
 # tda-scmultiomics
 Master's thesis "Topological Data Analysis of Single-Cell Multiomic Data"
 
-Student: Isabel Giray
+Student: Isabel Giray \n
 Supervisors: Gabriele Malagoli, Dr. Katharina Schmid, Prof. Dr. Maria Coloma-Tatché, Prof. Dr. Christina Kuttler
 
 The main part of the developed pipeline can be found here (upon request or once published): https://github.com/gmalagol10/XplainTDA.git
