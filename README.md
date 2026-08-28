@@ -6,7 +6,7 @@ Supervisors: Gabriele Malagoli, Dr. Katharina Schmid, Prof. Dr. Maria Coloma-Tat
 
 The main part of the developed pipeline can be found here (upon request or once published): https://github.com/gmalagol10/XplainTDA.git
 
-Adaptions were made to accommodate a different metric for the section "Cell Type Alignment with Connected Components":
+Adaptions were made to accommodate a scaled neighborhood distances for the Section "Cell Type Alignment with Connected Components":
 - XplainTDA_PH_cknn.py
 - Annotation_XplainTDA_cknn.py
 
