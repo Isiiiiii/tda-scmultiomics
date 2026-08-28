@@ -3,11 +3,6 @@ import pandas as pd
 from scipy.stats import mannwhitneyu
 from statsmodels.stats.multitest import multipletests
 
-
-# =========================================================
-# SETTINGS
-# =========================================================
-
 CELLTYPE_FOLDER = {
     "PBMC": "Raw_CellType",
     "BMMCMultiOme": "Coarse_CellType",
@@ -23,10 +18,7 @@ DATASETS = [
 N_RANDOM = 10000
 SEED = 0
 
-
-# =========================================================
 # PATHS
-# =========================================================
 
 def get_groups_dir(dataset, BASE):
     return (
@@ -40,10 +32,6 @@ def get_groups_dir(dataset, BASE):
         / "groups"
     )
 
-
-# =========================================================
-# LOAD GROUP FILES
-# =========================================================
 
 def load_group_files(dataset, BASE):
     """
@@ -73,9 +61,8 @@ def load_group_files(dataset, BASE):
     return pd.concat(frames, ignore_index=True)
 
 
-# =========================================================
+
 # RANDOM GENE-SET TEST
-# =========================================================
 
 def random_set_mwu_test(
     marker_scores,
@@ -102,10 +89,6 @@ def random_set_mwu_test(
 
     rng = np.random.default_rng(seed)
 
-    # -----------------------------------------------------
-    # Observed AUC
-    # -----------------------------------------------------
-
     U_obs, _ = mannwhitneyu(
         marker_scores,
         other_scores,
@@ -117,49 +100,19 @@ def random_set_mwu_test(
         n_markers * len(other_scores)
     )
 
-    # -----------------------------------------------------
-    # Random-set null distribution
-    # -----------------------------------------------------
-
     random_aucs = np.empty(n_random)
 
     for i in range(n_random):
 
-        random_scores = rng.choice(
-            other_scores,
-            size=n_markers,
-            replace=False,
-        )
+        random_scores = rng.choice(other_scores,size=n_markers,replace=False,)
 
-        U_random, _ = mannwhitneyu(
-            random_scores,
-            other_scores,
-            alternative="greater",
-            method="asymptotic",
-        )
+        U_random, _ = mannwhitneyu(random_scores,other_scores,alternative="greater",method="asymptotic",)
 
-        random_aucs[i] = U_random / (
-            n_markers * len(other_scores)
-        )
+        random_aucs[i] = U_random / (n_markers * len(other_scores))
 
-    # -----------------------------------------------------
-    # Empirical p-value
-    # -----------------------------------------------------
+    p_empirical = (np.sum(random_aucs >= auc_obs) + 1) / (n_random + 1)
 
-    p_empirical = (
-        np.sum(random_aucs >= auc_obs) + 1
-    ) / (
-        n_random + 1
-    )
-
-    # -----------------------------------------------------
-    # 95% interval of random AUCs
-    # -----------------------------------------------------
-
-    null_auc_low, null_auc_high = np.percentile(
-        random_aucs,
-        [2.5, 97.5],
-    )
+    null_auc_low, null_auc_high = np.percentile(random_aucs,[2.5, 97.5],)
 
     return {
         "AUC": auc_obs,
@@ -169,10 +122,7 @@ def random_set_mwu_test(
         "random_AUCs": random_aucs,
     }
 
-
-# =========================================================
 # TEST MARKER ENRICHMENT
-# =========================================================
 
 def test_marker_enrichment_random_sets(
     df,
@@ -196,65 +146,35 @@ def test_marker_enrichment_random_sets(
             df["homology_dim"] == h_dim
         ]
 
-        for group in sorted(
-            sub_h[group_col].unique()
-        ):
+        for group in sorted(sub_h[group_col].unique()):
 
-            sub = sub_h[
-                sub_h[group_col] == group
-            ]
+            sub = sub_h[sub_h[group_col] == group]
 
-            # -------------------------------------------------
-            # Get marker genes for this group
-            # -------------------------------------------------
+            markers = set(marker_dict.get(group, []))
 
-            markers = set(
-                marker_dict.get(group, [])
-            )
+            marker_scores = sub.loc[sub[gene_col].isin(markers),score_col,].to_numpy()
 
-            # -------------------------------------------------
-            # Extract scores
-            # -------------------------------------------------
-
-            marker_scores = sub.loc[
-                sub[gene_col].isin(markers),
-                score_col,
-            ].to_numpy()
-
-            other_scores = sub.loc[
-                ~sub[gene_col].isin(markers),
-                score_col,
-            ].to_numpy()
+            other_scores = sub.loc[~sub[gene_col].isin(markers),score_col,].to_numpy()
 
             n_markers = len(marker_scores)
             n_other = len(other_scores)
 
-            # -------------------------------------------------
             # Check sample sizes
-            # -------------------------------------------------
 
             if n_markers < 2:
-
                 print(
                     f"Skipping {group}, H{h_dim}: "
                     f"only {n_markers} marker genes"
                 )
-
                 continue
 
             if n_other < n_markers:
-
                 print(
                     f"Skipping {group}, H{h_dim}: "
                     f"{n_other} non-marker genes, "
                     f"but {n_markers} markers"
                 )
-
                 continue
-
-            # -------------------------------------------------
-            # Run random-set test
-            # -------------------------------------------------
 
             test = random_set_mwu_test(
                 marker_scores=marker_scores,
@@ -262,10 +182,6 @@ def test_marker_enrichment_random_sets(
                 n_random=n_random,
                 seed=seed,
             )
-
-            # -------------------------------------------------
-            # Store results
-            # -------------------------------------------------
 
             results.append({
                 "homology_dim": h_dim,
@@ -286,10 +202,7 @@ def test_marker_enrichment_random_sets(
 
     return pd.DataFrame(results)
 
-
-# =========================================================
 # MAIN FUNCTION
-# =========================================================
 
 def run_marker_enrichment(
     BASE,
@@ -341,28 +254,11 @@ def run_marker_enrichment(
                 f"Processing {dataset}\n"
                 f"{'=' * 60}"
             )
-
-        # -------------------------------------------------
         # Load data
-        # -------------------------------------------------
+        df_d = load_group_files(dataset=dataset,BASE=BASE,)
 
-        df_d = load_group_files(
-            dataset=dataset,
-            BASE=BASE,
-        )
-
-        # -------------------------------------------------
         # Marker sets
-        # -------------------------------------------------
-
-        marker_dict = marker_sets.get(
-            dataset,
-            {},
-        )
-
-        # -------------------------------------------------
-        # Run test
-        # -------------------------------------------------
+        marker_dict = marker_sets.get(dataset,{},)
 
         results_d = test_marker_enrichment_random_sets(
             df=df_d,
@@ -370,15 +266,9 @@ def run_marker_enrichment(
             n_random=n_random,
             seed=seed,
         )
-
-        # -------------------------------------------------
         # FDR correction
-        #
         # Correct separately within each homology dimension
-        # -------------------------------------------------
-
         if not results_d.empty:
-
             results_d[
                 "p_empirical_adj_per_dim"
             ] = (
@@ -395,10 +285,6 @@ def run_marker_enrichment(
             )
 
         dataset_results[dataset] = results_d
-
-        # -------------------------------------------------
-        # Print results
-        # -------------------------------------------------
 
         if verbose and not results_d.empty:
 
